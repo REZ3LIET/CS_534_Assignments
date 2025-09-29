@@ -87,18 +87,22 @@ class SlidingPuzzle:
             bool: True if move was successful
         """
         if not self.is_valid_move(row, col):
+            print("Exiting False")
             return False
         
         blank_row, blank_col = self.blank_pos
         
         # Swap tile with blank space
+        print(f"Blank Pos: {blank_row, blank_col}")
+        print(f"Moving Tile: {row, col}")
         self.grid[blank_row][blank_col] = self.grid[row][col]
         self.grid[row][col] = 0
         
         # Update blank position
         self.blank_pos = (row, col)
         self.moves += 1
-        
+
+        print("Exiting True")
         return True
     
     def is_solved(self) -> bool:
@@ -240,7 +244,7 @@ class SlidingPuzzle:
     def run(self):
         """Start the game"""
         self.shuffle_puzzle()  # Start with shuffled puzzle
-        self.root.mainloop()
+        # self.root.mainloop()
 
 
 class SlidingAStar:
@@ -249,19 +253,37 @@ class SlidingAStar:
         self.puzzle = SlidingPuzzle(size)
         self.goal = self.puzzle.get_goal_state()
         # Example of using get_state() method
-        print("Initial state:")
-        print(self.puzzle.get_state())
-        print()
 
-    def cost_function(self):
-        pass
+    def cost_function(self, g_cost):
+        return g_cost + 1
 
-    def heuristic_function(self, node, curr_pos, goal_pos):
+    def get_manhattan_dist(self, s_point, g_point):
+        return abs((g_point[0] - s_point[0]) + (g_point[1] - s_point[1]))
+
+    def heuristic_function(self, node):
         """
         Calculates the heuristic cost, if the node is moved
         to empty_space.
+
+        Steps:
+            1. Find empty space (element==0)
+            2. Swap node with empty space
+            3. Calculate heuristic between goal and swapper matrix
+            4. Return heuristic
         """
-        pass
+        p_state = self.puzzle.get_state()
+        row, col = np.where(p_state == 0)
+        mod_pose = p_state.copy()
+        mod_pose[row, col], mod_pose[node[0], node[1]] = mod_pose[node[0], node[1]], mod_pose[row, col]
+
+        h_val = 0
+        goal_pos = self.puzzle.get_goal_state()
+        for i in range(self.size):
+            g_val = np.where(goal_pos == i)
+            c_val = np.where(p_state == i)
+            h_val += self.get_manhattan_dist(c_val, g_val)
+
+        return h_val
 
     def total_cost(self, node, curr_pos, goal_pos, g_cost):
         """
@@ -278,9 +300,9 @@ class SlidingAStar:
         Returns:
             float: cost of the node
         """
-        return g_cost + self.heuristic_function(node, curr_pos, goal_pos)
+        return self.cost_function(g_cost) + self.heuristic_function(node)
 
-    def get_best_node(self, node_list, target, g_cost):
+    def get_best_node(self, node_list, target, g_cost) -> np.ndarray:
         """
         Calculates the total cost of each node and returns the
         one with least value
@@ -299,8 +321,8 @@ class SlidingAStar:
         goal_pos = np.where(self.goal == target)
 
         cost_arr = np.zeros(len(node_list))
-        for node in node_list:
-            cost_arr[0] = self.total_cost(node, curr_pos, goal_pos, g_cost)
+        for i, node in enumerate(node_list):
+            cost_arr[i] = self.total_cost(node, curr_pos, goal_pos, g_cost)
 
         node_id = np.argmin(cost_arr)
         return node_list[node_id]
@@ -316,7 +338,7 @@ class SlidingAStar:
 
         return (up_node, right_node, down_node, left_node)
 
-    def run(self):
+    def solve(self):
         """
         Main loop which executes the puzzle and A-Star
 
@@ -331,12 +353,22 @@ class SlidingAStar:
             8. Exit loop when i = 0 or time exceeds time_thresh.
         """
         self.puzzle.run()
+        self.puzzle.shuffle()
+        print("Initial state:")
+        print(self.puzzle.get_state())
+        print()
+
         g_cost = f_cost = h_cost = root = 0
         i_tile = self.size**2 - 1
 
         while True:
             nodes = self.explore_nodes()
             least_h = self.get_best_node(nodes, i_tile, g_cost)
+            print(f"Least H: {least_h}")
+            input("Press enter to continue: ")
+            ret = self.puzzle.move_tile(least_h[0].item(), least_h[1].item())
+            print(f"Move Tile: {ret}")
+            break
 
 
 
@@ -344,17 +376,5 @@ class SlidingAStar:
 
 # Example usage and demonstration
 if __name__ == "__main__":
-    # Create a 3x3 puzzle by default
-    puzzle = SlidingPuzzle(3)
-    
-    # Example of using get_state() method
-    print("Initial state:")
-    print(puzzle.get_state())
-    print()
-    
-    # You can also create puzzles of different sizes:
-    # puzzle = SlidingPuzzle(4)  # 4x4 puzzle
-    # puzzle = SlidingPuzzle(5)  # 5x5 puzzle
-    
-    # Start the GUI
-    puzzle.run()
+    solver = SlidingAStar()
+    solver.solve()
