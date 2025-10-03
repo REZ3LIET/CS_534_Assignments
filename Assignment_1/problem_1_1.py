@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog
 import numpy as np
 import random
+import time
+
 class SlidingPuzzle:
     def __init__(self, size: int = 3):
         """
@@ -98,7 +100,6 @@ class SlidingPuzzle:
         self.blank_pos = (row, col)
         self.moves += 1
 
-        print("Exiting True")
         return True
     
     def is_solved(self) -> bool:
@@ -263,6 +264,41 @@ class SlidingAStar:
     def cost_function(self, g_cost):
         return g_cost + 1
 
+    def get_move_weight(self, tile_curr, tile_g, blank):
+        # Manhatten to goal
+        d_tile = self.get_manhattan_dist(tile_curr, tile_g)
+
+        # Blocked moves = available moves - legal moves
+        b_m = 4
+        if tile_curr[0] == 0:  # 0th row so no down moves
+            b_m -= 1
+        if tile_curr[0] == self.size: # last row so no up moves
+            b_m -= 1
+        if tile_curr[1] == 0:  # 0th column so no left moves
+            b_m -= 1
+        if tile_curr[1] == self.size:  # last column so no roght moves
+            b_m -= 1
+
+        if self.get_manhattan_dist(tile_curr, blank) == 1:  # If there is legal move
+            b_m -= 1 
+
+        # Calculate number of obstacles (d_tile - 1 if blank_space)
+        # check for blank_space between tile_curr and tile_g
+        # d_tile = dist(tile_curr, blank) + dist(blank, tile_g) if on path
+        curr_to_blank_dist = self.get_manhattan_dist(tile_curr, blank)
+        blank_to_goal_dist = self.get_manhattan_dist(blank, tile_g)
+        if d_tile == (curr_to_blank_dist + blank_to_goal_dist):
+            n_obj = d_tile - 1
+        else:
+            n_obj = d_tile
+
+
+        # final h = dist(c, g) + b_m + n_obj + n_obj*4
+        final_h = d_tile + b_m + n_obj * 5
+        return final_h
+
+
+
     def get_manhattan_dist(self, s_point, g_point):
         return abs((g_point[0] - s_point[0]) + (g_point[1] - s_point[1]))
 
@@ -278,12 +314,15 @@ class SlidingAStar:
             4. Return heuristic
         """
         goal_pos = self.puzzle.get_goal_state()
+        blank_r = np.where(c_state == 0)[0].item()
+        blank_c = np.where(c_state == 0)[1].item()
 
         h_val = 0
         for i in range(0, self.size**2):
             g_val = np.where(goal_pos == i)
             c_val = np.where(c_state == i)
-            h_val += self.get_manhattan_dist(c_val, g_val)
+            # h_val += self.get_manhattan_dist(c_val, g_val)
+            h_val += self.get_move_weight(c_val, g_val, (blank_r, blank_c))
 
         return h_val
 
@@ -392,10 +431,16 @@ class SlidingAStar:
             move_list.append(curr_node.move)
             curr_node = curr_node.parent
 
+        num_nodes = len(self.node_list) + len(self.visted_node_list)
+        num_moves = len(move_list)
+        print(f"Total nodes explored: {num_nodes}")
+        print(f"Number of moves to solve: {num_moves}")
         for move in move_list[::-1]:
+            self.puzzle.root.update_idletasks()
             self.puzzle.move_tile(move[0], move[1])
             self.puzzle.update_display()
-            input("Press enter to continue: ")
+            time.sleep(1)
+        input("Press enter to exit")
 
 
 # Example usage and demonstration
