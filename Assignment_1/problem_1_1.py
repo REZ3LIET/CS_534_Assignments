@@ -53,6 +53,18 @@ class SlidingPuzzle:
         """
         return self.grid.copy()
     
+    def set_state(self, input_grid, blank_tile):
+        """
+        Return current state of the grid as numpy array
+        
+        Returns:
+            np.ndarray: Current grid state with 0 representing blank space
+        """
+        self.grid = input_grid
+        self.blank_pos = blank_tile
+        self.moves = 0
+        self.update_display()
+    
     def get_goal_state(self) -> np.ndarray:
         """
         Return the goal/solved state of the grid as numpy array
@@ -297,10 +309,18 @@ class SlidingAStar:
         final_h = d_tile + b_m + n_obj * 5
         return final_h
 
-
+    def get_hamming_dist(self, curr):
+         # Flatten the arrays for easy comparison
+        current_flat = curr.flatten()
+        goal_flat = self.puzzle.get_goal_state().flatten()
+        
+        # Ignore the blank (0) when comparing
+        mismatch = (current_flat != goal_flat) & (goal_flat != 0)
+        
+        return np.sum(mismatch)
 
     def get_manhattan_dist(self, s_point, g_point):
-        return abs((g_point[0] - s_point[0]) + (g_point[1] - s_point[1]))
+        return abs(g_point[0] - s_point[0]) + abs(g_point[1] - s_point[1])
 
     def heuristic_function(self, c_state):
         """
@@ -313,18 +333,19 @@ class SlidingAStar:
             3. Calculate heuristic between goal and swapper matrix
             4. Return heuristic
         """
-        goal_pos = self.puzzle.get_goal_state()
-        blank_r = np.where(c_state == 0)[0].item()
-        blank_c = np.where(c_state == 0)[1].item()
+        # goal_pos = self.puzzle.get_goal_state()
+        # blank_r = np.where(c_state == 0)[0].item()
+        # blank_c = np.where(c_state == 0)[1].item()
 
-        h_val = 0
-        for i in range(0, self.size**2):
-            g_val = np.where(goal_pos == i)
-            c_val = np.where(c_state == i)
+        # h_val = 0
+        # for i in range(0, self.size**2):
+        #     g_val = np.where(goal_pos == i)
+        #     c_val = np.where(c_state == i)
             # h_val += self.get_manhattan_dist(c_val, g_val)
-            h_val += self.get_move_weight(c_val, g_val, (blank_r, blank_c))
+            # h_val += self.get_move_weight(c_val, g_val, (blank_r, blank_c))
 
-        return h_val
+        return self.get_hamming_dist(c_state)
+        # return h_val
 
     def get_best_node(self) -> Node:
         """
@@ -403,7 +424,13 @@ class SlidingAStar:
             5. Select the one with least h as r.
             8. Exit loop when i = 0 or time exceeds time_thresh.
         """
-        self.puzzle.run()
+        # self.puzzle.run()
+        self.puzzle.set_state(np.array(
+            [[3, 4, 8],
+             [7, 2, 1],
+             [0, 5, 6]]
+        ),
+        (2, 0))
         print("Initial state:")
         print(self.puzzle.get_state())
         print()
@@ -415,7 +442,7 @@ class SlidingAStar:
         while True:
             self.explore_moves(c_node)  # Explores possible nodes w.r.t possible moves
             best_node = self.get_best_node()
-            print(f"node gcost, total cost: {best_node.g_cost, best_node.total_cost}")
+            # print(f"node gcost, total cost: {best_node.g_cost, best_node.total_cost}")
 
             if np.array_equal(best_node.grid, goal_state):
                 break
