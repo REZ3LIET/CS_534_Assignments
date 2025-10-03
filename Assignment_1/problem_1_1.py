@@ -2,8 +2,6 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog
 import numpy as np
 import random
-from typing import Tuple, List
-
 class SlidingPuzzle:
     def __init__(self, size: int = 3):
         """
@@ -93,8 +91,6 @@ class SlidingPuzzle:
         blank_row, blank_col = self.blank_pos
         
         # Swap tile with blank space
-        print(f"Blank Pos: {blank_row, blank_col}")
-        print(f"Moving Tile: {row, col}")
         self.grid[blank_row][blank_col] = self.grid[row][col]
         self.grid[row][col] = 0
         
@@ -247,12 +243,22 @@ class SlidingPuzzle:
         # self.root.mainloop()
 
 
+class Node:
+    def __init__(self, grid, parent, g_cost, h_cost, move):
+        self.parent = parent
+        self.grid = grid
+        self.g_cost = g_cost
+        self.h_cost = h_cost
+        self.total_cost = g_cost + h_cost
+        self.move = move
+
 class SlidingAStar:
-    def __init__(self, size=3) -> None:
+    def __init__(self, size=3):
         self.size = size
         self.puzzle = SlidingPuzzle(size)
         self.goal = self.puzzle.get_goal_state()
-        # Example of using get_state() method
+        self.node_list = []  # Stores all explored nodes
+        self.visted_node_list = []  # Stores all visited nodes
 
     def cost_function(self, g_cost):
         return g_cost + 1
@@ -260,7 +266,7 @@ class SlidingAStar:
     def get_manhattan_dist(self, s_point, g_point):
         return abs((g_point[0] - s_point[0]) + (g_point[1] - s_point[1]))
 
-    def heuristic_function(self, node):
+    def heuristic_function(self, c_state):
         """
         Calculates the heuristic cost, if the node is moved
         to empty_space.
@@ -271,38 +277,17 @@ class SlidingAStar:
             3. Calculate heuristic between goal and swapper matrix
             4. Return heuristic
         """
-        p_state = self.puzzle.get_state()
-        row, col = np.where(p_state == 0)
-        mod_pose = p_state.copy()
-        mod_pose[row, col], mod_pose[node[0], node[1]] = mod_pose[node[0], node[1]], mod_pose[row, col]
+        goal_pos = self.puzzle.get_goal_state()
 
         h_val = 0
-        goal_pos = self.puzzle.get_goal_state()
-        for i in range(self.size):
+        for i in range(0, self.size**2):
             g_val = np.where(goal_pos == i)
-            c_val = np.where(p_state == i)
+            c_val = np.where(c_state == i)
             h_val += self.get_manhattan_dist(c_val, g_val)
 
         return h_val
 
-    def total_cost(self, node, curr_pos, goal_pos, g_cost):
-        """
-        Calculates the total cost for a given node
-
-            h(n) = g(n) + f(n)
-        
-        Args:
-            node: node whose cost is to be found
-            curr_pos: current position of target tile
-            goal_pos: goal position of target tile
-            g_cost: g(n), number of moves
-        
-        Returns:
-            float: cost of the node
-        """
-        return self.cost_function(g_cost) + self.heuristic_function(node)
-
-    def get_best_node(self, node_list, target, g_cost, blank_pos) -> np.ndarray:
+    def get_best_node(self) -> Node:
         """
         Calculates the total cost of each node and returns the
         one with least value
@@ -313,36 +298,59 @@ class SlidingAStar:
             g_cost: current traversal cost
 
         Returns:
-
-            np.ndarray size(2): location of node with least cost
+            move, leading to least cost node location of node with least cost
         """
-        p_state = self.puzzle.get_state()
-        curr_pos = np.where(p_state == target)
-        goal_pos = np.where(self.goal == target)
+        self.node_list = sorted(self.node_list, key=lambda i: i.total_cost)
+        node = self.node_list.pop(0)
 
-        cost_arr = np.ones(len(node_list)) * np.inf
-        for i, node in enumerate(node_list):
-            if node[0] == node[1] == -1:
-                continue
-            if node[0] == blank_pos[0] and node[1] == blank_pos[1]:
-                continue
+        self.visted_node_list.append(node)
+        return node
 
-            cost_arr[i] = self.total_cost(node, curr_pos, goal_pos, g_cost)
+    def is_explored(self, grid):
+        """Checks if given node is explored or visited"""
+        in_nodes = any(np.array_equal(grid, x.grid) for x in self.node_list)
+        in_visited = any(np.array_equal(grid, x.grid) for x in self.visted_node_list)
+        if in_nodes or in_visited:
+            return True
+        return False
 
-        node_id = np.argmin(cost_arr)
-        return node_list[node_id]
 
-    def explore_nodes(self):
-        """Explore nodes around blank space"""
-        p_state = self.puzzle.get_state()
-        row, col = np.where(p_state == 0)
+    def explore_moves(self, node: Node):
+        """Explores nodes with cost around blank space"""
+        c_state = node.grid
+        row = np.where(c_state == 0)[0].item()  # find empty space
+        col = np.where(c_state == 0)[1].item()  # find empty space
 
+        # Get possible moves
         up_node = (row - 1, col) if row > 0 else (-1, -1)
-        right_node = (row , col + 1) if col < self.size-1 else (-1, -1)
+        right_node = (row, col + 1) if col < self.size-1 else (-1, -1)
         down_node = (row + 1, col) if row < self.size-1 else (-1, -1)
-        left_node = (row , col - 1) if col > 0 else (-1, -1)
+        left_node = (row, col - 1) if col > 0 else (-1, -1)
 
-        return (up_node, right_node, down_node, left_node)
+        explored_nodes = []
+        for element in (up_node, right_node, down_node, left_node):
+            if any(np.array_equal(element, x) for x in explored_nodes):
+                continue
+
+            if element[0] == element[1] == -1:
+                continue
+
+            n_grid = c_state.copy()
+            n_grid[row][col], n_grid[element[0]][element[1]] = n_grid[element[0]][element[1]], n_grid[row][col]
+
+            if self.is_explored(n_grid):
+                continue
+
+            new_node = Node(
+                n_grid,
+                node,
+                node.g_cost + 1,
+                self.heuristic_function(n_grid),
+                element
+            )
+
+            explored_nodes.append(element)
+            self.node_list.append(new_node)
 
     def solve(self):
         """
@@ -354,33 +362,40 @@ class SlidingAStar:
             3. Get current state
             4. Explore nodes and calculate their h
             5. Select the one with least h as r.
-            6. Pass r to puzzle to make a move, repeat loop.
-            7. If f(i) = 0, update i by decrementing by 1.
             8. Exit loop when i = 0 or time exceeds time_thresh.
         """
         self.puzzle.run()
-        self.puzzle.shuffle()
         print("Initial state:")
         print(self.puzzle.get_state())
         print()
 
-        g_cost = f_cost = h_cost = root = 0
-        i_tile = self.size**2 - 1
-        p_state = self.puzzle.get_state()
-        blank_row, blank_col = np.where(p_state == 0)
+        start_state = self.puzzle.get_state()
+        goal_state = self.puzzle.get_goal_state()
+        c_node = Node(start_state, -1, 0, self.heuristic_function(start_state), (-1, -1))
+        input("Press enter to continue: ")
         while True:
-            input("Press enter to continue: ")
-            nodes = self.explore_nodes()
-            least_h = self.get_best_node(nodes, i_tile, g_cost, (blank_row, blank_col))
-            print(f"Least H: {least_h}")
-            p_state = self.puzzle.get_state()
-            blank_row, blank_col = np.where(p_state == 0)
-            ret = self.puzzle.move_tile(least_h[0].item(), least_h[1].item())
-            print(f"Move Tile: {ret}")
+            self.explore_moves(c_node)  # Explores possible nodes w.r.t possible moves
+            best_node = self.get_best_node()
+            print(f"node gcost, total cost: {best_node.g_cost, best_node.total_cost}")
+
+            if np.array_equal(best_node.grid, goal_state):
+                break
+
+            c_node = best_node
+
+        print(f"Goal g_cost, total_cost: {best_node.g_cost, best_node.total_cost}")
+        move_list = []
+        curr_node = best_node
+        while True:
+            if curr_node.parent == -1:
+                break
+            move_list.append(curr_node.move)
+            curr_node = curr_node.parent
+
+        for move in move_list[::-1]:
+            self.puzzle.move_tile(move[0], move[1])
             self.puzzle.update_display()
-
-
-
+            input("Press enter to continue: ")
 
 
 # Example usage and demonstration
