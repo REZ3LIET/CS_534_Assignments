@@ -3,6 +3,8 @@ from tkinter import messagebox, simpledialog
 import numpy as np
 import random
 import time
+import heapq
+
 
 class SlidingPuzzle:
     def __init__(self, size: int = 3):
@@ -265,13 +267,16 @@ class Node:
         self.total_cost = g_cost + h_cost
         self.move = move
 
+
 class SlidingAStar:
-    def __init__(self, size=3):
+    def __init__(self, size=3, heuristic=2):
         self.size = size
         self.puzzle = SlidingPuzzle(size)
         self.goal = self.puzzle.get_goal_state()
         self.node_list = []  # Stores all explored nodes
-        self.visted_node_list = []  # Stores all visited nodes
+        self.counter = 0  # Tie-breaker for heapq
+        self.visted_node_list = set()  # Stores all visited nodes
+        self.heuristic = heuristic
 
     def cost_function(self, g_cost):
         return g_cost + 1
@@ -333,19 +338,23 @@ class SlidingAStar:
             3. Calculate heuristic between goal and swapper matrix
             4. Return heuristic
         """
-        # goal_pos = self.puzzle.get_goal_state()
-        # blank_r = np.where(c_state == 0)[0].item()
-        # blank_c = np.where(c_state == 0)[1].item()
+        if self.heuristic == 1:
+            return self.get_hamming_dist(c_state)
+        
+        goal_pos = self.puzzle.get_goal_state()
+        blank_r = np.where(c_state == 0)[0].item()
+        blank_c = np.where(c_state == 0)[1].item()
 
-        # h_val = 0
-        # for i in range(0, self.size**2):
-        #     g_val = np.where(goal_pos == i)
-        #     c_val = np.where(c_state == i)
-            # h_val += self.get_manhattan_dist(c_val, g_val)
-            # h_val += self.get_move_weight(c_val, g_val, (blank_r, blank_c))
+        h_val = 0
+        for i in range(0, self.size**2):
+            g_val = np.where(goal_pos == i)
+            c_val = np.where(c_state == i)
+            if self.heuristic == 2:
+                h_val += self.get_manhattan_dist(c_val, g_val)
+            else:
+                h_val += self.get_move_weight(c_val, g_val, (blank_r, blank_c))
 
-        return self.get_hamming_dist(c_state)
-        # return h_val
+        return h_val
 
     def get_best_node(self) -> Node:
         """
@@ -360,43 +369,39 @@ class SlidingAStar:
         Returns:
             move, leading to least cost node location of node with least cost
         """
-        self.node_list = sorted(self.node_list, key=lambda i: i.total_cost)
-        node = self.node_list.pop(0)
+        node = heapq.heappop(self.node_list)[-1]
+        self.visted_node_list.add(tuple(node.grid.flatten()))
 
-        self.visted_node_list.append(node)
         return node
 
     def is_explored(self, grid):
         """Checks if given node is explored or visited"""
-        in_nodes = any(np.array_equal(grid, x.grid) for x in self.node_list)
-        in_visited = any(np.array_equal(grid, x.grid) for x in self.visted_node_list)
-        if in_nodes or in_visited:
+        state_key = tuple(grid.flatten())
+        if state_key in self.visted_node_list:
             return True
+
+        for _, _, node in self.node_list:
+            if tuple(node.grid.flatten()) == state_key:
+                return True
+
         return False
 
 
     def explore_moves(self, node: Node):
         """Explores nodes with cost around blank space"""
         c_state = node.grid
-        row = np.where(c_state == 0)[0].item()  # find empty space
-        col = np.where(c_state == 0)[1].item()  # find empty space
+        row, col = np.where(c_state == 0)
+        row, col = row.item(), col.item()
 
-        # Get possible moves
-        up_node = (row - 1, col) if row > 0 else (-1, -1)
-        right_node = (row, col + 1) if col < self.size-1 else (-1, -1)
-        down_node = (row + 1, col) if row < self.size-1 else (-1, -1)
-        left_node = (row, col - 1) if col > 0 else (-1, -1)
+        directions = [(-1, 0), (0, 1), (1, 0), (0, -1)]  # Up, Right, Down, Left
 
-        explored_nodes = []
-        for element in (up_node, right_node, down_node, left_node):
-            if any(np.array_equal(element, x) for x in explored_nodes):
-                continue
-
-            if element[0] == element[1] == -1:
+        for dr, dc in directions:
+            nr, nc = row + dr, col + dc
+            if not (0 <= nr < self.size) or not (0 <= nc < self.size):
                 continue
 
             n_grid = c_state.copy()
-            n_grid[row][col], n_grid[element[0]][element[1]] = n_grid[element[0]][element[1]], n_grid[row][col]
+            n_grid[row][col], n_grid[nr][nc] = n_grid[nr][nc], n_grid[row][col]
 
             if self.is_explored(n_grid):
                 continue
@@ -406,13 +411,13 @@ class SlidingAStar:
                 node,
                 node.g_cost + 1,
                 self.heuristic_function(n_grid),
-                element
+                (nr, nc)
             )
 
-            explored_nodes.append(element)
-            self.node_list.append(new_node)
+            self.counter += 1
+            heapq.heappush(self.node_list, (new_node.total_cost, self.counter, new_node))
 
-    def solve(self):
+    def solve(self, state=None, blank_space=None):
         """
         Main loop which executes the puzzle and A-Star
 
@@ -424,23 +429,27 @@ class SlidingAStar:
             5. Select the one with least h as r.
             8. Exit loop when i = 0 or time exceeds time_thresh.
         """
-        # self.puzzle.run()
-        self.puzzle.set_state(np.array(
-            [[3, 4, 8],
-             [7, 2, 1],
-             [0, 5, 6]]
-        ),
-        (2, 0))
+        if state is None:
+            self.puzzle.run()
+            start_state = self.puzzle.get_state()
+
+        else:
+            start_state = self.puzzle.set_state(state, blank_space)
+
+        goal_state = self.puzzle.get_goal_state()
+
         print("Initial state:")
-        print(self.puzzle.get_state())
+        print(start_state)
         print()
 
-        start_state = self.puzzle.get_state()
-        goal_state = self.puzzle.get_goal_state()
-        c_node = Node(start_state, -1, 0, self.heuristic_function(start_state), (-1, -1))
+        # Start timer
         input("Press enter to continue: ")
+        s_time = time.time()
+        c_node = Node(start_state, -1, 0, self.heuristic_function(start_state), (-1, -1))
+        print("Timer Started, Searching for solution")
         while True:
             self.explore_moves(c_node)  # Explores possible nodes w.r.t possible moves
+            self.visted_node_list.add(tuple(c_node.grid.flatten()))  # Add expanded node to list
             best_node = self.get_best_node()
             # print(f"node gcost, total cost: {best_node.g_cost, best_node.total_cost}")
 
@@ -458,10 +467,11 @@ class SlidingAStar:
             move_list.append(curr_node.move)
             curr_node = curr_node.parent
 
-        num_nodes = len(self.node_list) + len(self.visted_node_list)
+        num_nodes = len(self.visted_node_list)
         num_moves = len(move_list)
         print(f"Total nodes explored: {num_nodes}")
         print(f"Number of moves to solve: {num_moves}")
+        print(f"Time to find solution: {time.time() - s_time}s")
         for move in move_list[::-1]:
             self.puzzle.root.update_idletasks()
             self.puzzle.move_tile(move[0], move[1])
@@ -469,8 +479,17 @@ class SlidingAStar:
             time.sleep(1)
         input("Press enter to exit")
 
+        blank_r, blank_c = np.where(start_state == 0)
+        return (start_state, (blank_r.item(), blank_c.item()))
+
 
 # Example usage and demonstration
 if __name__ == "__main__":
-    solver = SlidingAStar()
-    solver.solve()
+    solver_c = SlidingAStar(4, 3)
+    grid, blank = solver_c.solve()
+
+    solver_m = SlidingAStar(4, 2)
+    _, _ = solver_m.solve(grid, blank)
+
+    solver_h = SlidingAStar(4, 1)
+    _, _ = solver_h.solve(grid, blank)
