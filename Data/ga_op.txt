@@ -1,0 +1,24 @@
+Board Size: 5
+n=5: Avg Steps = 1, Avg Fitness = 10
+Board Size: 6
+n=6: Avg Steps = 3.4, Avg Fitness = 15
+Board Size: 7
+n=7: Avg Steps = 8, Avg Fitness = 21
+Board Size: 8
+n=8: Avg Steps = 13.4, Avg Fitness = 28
+Board Size: 9
+n=9: Avg Steps = 13.6, Avg Fitness = 36
+Board Size: 10
+n=10: Avg Steps = 17.4, Avg Fitness = 45
+Board Size: 5
+n=5: Avg Steps = 2.6, Avg Fitness = 10
+Board Size: 6
+n=6: Avg Steps = 6.6, Avg Fitness = 15
+Board Size: 7
+n=7: Avg Steps = 11.8, Avg Fitness = 21
+Board Size: 8
+n=8: Avg Steps = 19.6, Avg Fitness = 28
+Board Size: 9
+n=9: Avg Steps = 30, Avg Fitness = 36
+Board Size: 10
+n=10: Avg Steps = 52.6, Avg Fitness = 45

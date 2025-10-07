@@ -1,3 +1,10 @@
+"""
+CS 534 Assignment-1.1: A-Star Algorithm.
+
+Author: Samar Kale
+Date: 2025-10-06
+"""
+
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 import numpy as np
@@ -130,7 +137,7 @@ class SlidingPuzzle:
                         return False
                     num += 1
         return True
-    
+
     def shuffle(self, num_moves: int = 75):
         """Shuffle the puzzle by making random valid moves"""
         moves = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # right, left, down, up
@@ -260,38 +267,37 @@ class SlidingPuzzle:
 
 
 class Node:
-    def __init__(self, grid, parent, g_cost, h_cost, move):
+    def __init__(self, grid, parent, g_cost, h_cost, blank_pos):
         self.parent = parent
         self.grid = grid
         self.g_cost = g_cost
         self.h_cost = h_cost
         self.total_cost = g_cost + h_cost
-        self.move = move
+        self.blank_pos = blank_pos
 
 
 class SlidingAStar:
     def __init__(self, size=3, heuristic=2):
         self.size = size
         self.puzzle = SlidingPuzzle(size)
-        self.goal = self.puzzle.get_goal_state()
         self.node_list = []  # Stores all explored nodes
         self.counter = 0  # Tie-breaker for heapq
         self.visted_node_list = set()  # Stores all visited nodes
         self.heuristic = heuristic
         self.goal_state = ()
-        self.goal_pos_dict = {self.goal[x][y]: (x, y) for x in range(self.size) for y in range(self.size)}
+        goal = self.puzzle.get_goal_state()
+        self.goal_pos_dict = {goal[x][y]: (x, y) for x in range(self.size) for y in range(self.size)}
         self.open_set = {}
 
     def heuristic_function(self, c_state):
         """
-        Calculates the heuristic cost, if the node is moved
-        to empty_space.
-
-        Steps:
-            1. Find empty space (element==0)
-            2. Swap node with empty space
-            3. Calculate heuristic between goal and swapper matrix
-            4. Return heuristic
+        Calculates the heuristic cost for a given grid.
+        Args:
+            c_state (tuple): Grid for which heuristic is
+                to be calculated
+        
+        Returns:
+            int: heuristic value
         """
         if self.heuristic == 1:
             h_val = 0
@@ -302,7 +308,6 @@ class SlidingAStar:
             return h_val
 
         curr_pos_dict = {c_state[x][y]: (x, y) for x in range(self.size) for y in range(self.size)}
-
         h_val = 0
         for i in range(1, self.size**2):
             g_val = self.goal_pos_dict[i]
@@ -312,28 +317,17 @@ class SlidingAStar:
         return h_val
 
     def get_best_node(self) -> Node:
-        """
-        Calculates the total cost of each node and returns the
-        one with least value
-
-        Args:
-            node_list: List of available nodes to explore cost for
-            target: current element to explore for
-            g_cost: current traversal cost
-
-        Returns:
-            move, leading to least cost node location of node with least cost
-        """
-        node = heapq.heappop(self.node_list)[-1]
-        self.open_set.pop(node.grid, None)
-        self.visted_node_list.add(node.grid)
+        """Returns the node with least total cost"""
+        node = heapq.heappop(self.node_list)[-1]  # retrieve node with least total cost
+        self.open_set.pop(node.grid, None)  # Remove node from open set
+        self.visted_node_list.add(node.grid)  # Add node to visited as it is expanded
 
         return node
 
     def explore_moves(self, node: Node):
-        """Explores nodes with cost around blank space"""
+        """Explores new nodes around current node"""
         c_state = node.grid
-        row, col = node.move
+        row, col = node.blank_pos
 
         directions = [(-1, 0), (0, 1), (1, 0), (0, -1)]  # Up, Right, Down, Left
 
@@ -342,13 +336,16 @@ class SlidingAStar:
             if not (0 <= nr < self.size) or not (0 <= nc < self.size):
                 continue
 
+            # Update move to c_state and save in n_grid
             n_grid = [list(row) for row in c_state]
             n_grid[row][col], n_grid[nr][nc] = n_grid[nr][nc], n_grid[row][col]
             n_grid = tuple(tuple(row) for row in n_grid)
 
+            # If n_grid already visited skip
             if n_grid in self.visted_node_list:
                 continue
 
+            # If n_grid already as an optimal parent skip
             new_hcost = self.heuristic_function(n_grid)
             new_tcost = node.g_cost + 1 + new_hcost
             if n_grid in self.open_set and self.open_set[n_grid] < new_tcost:
@@ -367,23 +364,14 @@ class SlidingAStar:
             self.open_set[new_node.grid] = new_node.total_cost
 
     def solve(self, state=None, blank_space=None):
-        """
-        Main loop which executes the puzzle and A-Star
-
-        A-Star:
-            1. Initialise, g, h, f, r to 0
-            2. Initialize i as i to size^2 -1
-            3. Get current state
-            4. Explore nodes and calculate their h
-            5. Select the one with least h as r.
-            8. Exit loop when i = 0 or time exceeds time_thresh.
-        """
+        """Main loop which executes the puzzle and A-Star"""
         if state is None:
             self.puzzle.run()
 
         else:
             self.puzzle.set_state(state.copy(), blank_space)
 
+        # Read start and goal stae of puzzle into tuples
         start_state = tuple(tuple(int(x) for x in row) for row in self.puzzle.get_state())
         self.goal_state = tuple(tuple(int(x) for x in row) for row in self.puzzle.get_goal_state())
 
@@ -393,10 +381,14 @@ class SlidingAStar:
 
         # Start timer
         s_time = time.time()
+
+        # Initialize the nodes
         blank_pos = next((x, y) for x in range(self.size) for y in range(self.size) if start_state[x][y] == 0)
         c_node = Node(start_state, -1, 0, self.heuristic_function(start_state), blank_pos)
         heapq.heappush(self.node_list, (c_node.total_cost, self.counter, c_node))
         print("Timer Started, Searching for solution")
+
+        # Main solution loop
         while True:
             if len(self.node_list) == 0:
                 stats = {
@@ -414,10 +406,12 @@ class SlidingAStar:
 
         move_list = []
         curr_node = best_node
+
+        # Loop to find path
         while True:
             if curr_node.parent == -1:
                 break
-            move_list.append(curr_node.move)
+            move_list.append(curr_node.blank_pos)
             curr_node = curr_node.parent
 
         stats = {
@@ -429,6 +423,7 @@ class SlidingAStar:
         print(f"Number of moves to solve: {stats['path_length']}")
         print(f"Time to find solution: {stats['time_taken']}s")
 
+        # To simulate path in GUI
         # for move in move_list[::-1]:
         #     self.puzzle.root.update_idletasks()
         #     self.puzzle.move_tile(move[0], move[1])
@@ -440,7 +435,7 @@ class SlidingAStar:
 
 def run_batch_experiments(show_plot=True):
     """
-    Run SlidingAStar solver for heuristics 1 and 2 over puzzle sizes 3 to 7,
+    Run SlidingAStar solver for heuristics 1 and 2 over puzzle sizes 2 to 5,
     each 5 runs per size, collect stats, and plot results.
     """
     heuristic_map = {
@@ -454,7 +449,7 @@ def run_batch_experiments(show_plot=True):
 
     for heuristic in [1, 2]:
         print(f"Running experiments for Heuristic {heuristic}")
-        for n in range(3, 6):
+        for n in range(2, 5):
             s_time = time.time()
             print(f"Board Size: {n}")
             steps_list = []
@@ -480,8 +475,7 @@ def run_batch_experiments(show_plot=True):
 
     if show_plot:
         # Plot 1: Board size vs Avg nodes expanded (for both heuristics)
-        plt.figure(figsize=(12, 5))
-        plt.subplot(1, 2, 1)
+        plt.figure(figsize=(12, 7))
         for h in [1, 2]:
             ns = [r[0] for r in results[h]]
             avg_nodes = [r[2] for r in results[h]]
@@ -491,9 +485,10 @@ def run_batch_experiments(show_plot=True):
         plt.title("Puzzle Size vs Average Nodes Expanded")
         plt.grid(True)
         plt.legend()
+        plt.show()
 
         # Plot 2: Effective branching factor vs total nodes expanded
-        plt.subplot(1, 2, 2)
+        plt.figure(figsize=(12, 7))
         for h in [1, 2]:
             avg_steps = [r[1] for r in results[h]]
             avg_nodes = [r[2] for r in results[h]]
@@ -501,10 +496,10 @@ def run_batch_experiments(show_plot=True):
             effective_branching = []
             for N, d in zip(avg_nodes, avg_steps):
                 if d > 0:
-                    b_star = (N / d) ** (1 / d)
+                    b_f = (N / d) ** (1 / d)
                 else:
-                    b_star = 0
-                effective_branching.append(b_star)
+                    b_f = 0
+                effective_branching.append(b_f)
 
             plt.plot(effective_branching, avg_nodes, marker='o', label=f"Heuristic {heuristic_map[h]}")
 

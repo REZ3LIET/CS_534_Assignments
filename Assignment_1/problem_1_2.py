@@ -1,3 +1,10 @@
+"""
+CS 534 Assignment-1.2: Genetic Algorithm.
+
+Author: Samar Kale
+Date: 2025-10-06
+"""
+
 import random
 import statistics
 import matplotlib.pyplot as plt
@@ -9,6 +16,7 @@ class NQueenGA:
         self.size = board_dim
 
     def generate_population(self, k_states):
+        """Generates random k_states lists of self.size"""
         population_list = []
         for _ in range(k_states):
             k = [random.randint(0, self.size-1) for _ in range(self.size)]
@@ -17,6 +25,7 @@ class NQueenGA:
         return population_list
 
     def fitness(self, k_state):
+        """Calculates the fitness for given k_state"""
         max_non_atk = self.size * (self.size - 1)//2
         atk = 0
         for i in range(self.size):
@@ -42,11 +51,13 @@ class NQueenGA:
         return p_1[:cut_off] + p_2[cut_off:]
 
     def mutate(self, child):
+        """Performs mutation on random element of child"""
         element = random.randint(0, len(child)-1)
         child[element] = random.randint(0, self.size)
         return child
 
-    def solve(self, mutate_times=1, pop_size=10):
+    def solve(self, mutate_times=1, pop_size=100):
+        """Main function to solve the puzzle"""
         pop = self.generate_population(pop_size)
         gen = 0
         gen_thresh = 1000
@@ -118,7 +129,7 @@ def run_batch_experiments(show_plot=True):
         for m in results.keys():
             ns = [r[0] for r in results[m]]
             step_vals = [r[1] for r in results[m]]
-            plt.plot(ns, step_vals, marker='o', label=f"NQueens GCA Test Mutaions: {m}")
+            plt.plot(ns, step_vals, marker='o', label=f"NQueens GA Test Mutaions: {m}")
 
         plt.xlabel("Board Size (n)")
         plt.ylabel("Avg Generations to Solve")

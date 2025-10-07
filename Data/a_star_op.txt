@@ -1,0 +1,224 @@
+Running experiments for Heuristic 1
+Board Size: 2
+Initial state:
+((3, 2), (0, 1))
+
+Timer Started, Searching for solution
+Total nodes explored: 9
+Number of moves to solve: 5
+Time to find solution: 0.00010013580322265625s
+Initial state:
+((3, 0), (1, 2))
+
+Timer Started, Searching for solution
+Total nodes explored: 9
+Number of moves to solve: 5
+Time to find solution: 6.008148193359375e-05s
+Initial state:
+((1, 3), (0, 2))
+
+Timer Started, Searching for solution
+Total nodes explored: 5
+Number of moves to solve: 3
+Time to find solution: 3.4809112548828125e-05s
+Initial state:
+((1, 0), (2, 3))
+
+Timer Started, Searching for solution
+Total nodes explored: 2
+Number of moves to solve: 1
+Time to find solution: 2.0503997802734375e-05s
+Initial state:
+((3, 0), (1, 2))
+
+Timer Started, Searching for solution
+Total nodes explored: 9
+Number of moves to solve: 5
+Time to find solution: 6.127357482910156e-05s
+n=2: Avg Steps = 3.8, Avg Nodes Expanded = 6.8, Avg Time: 0.0
+Board Size: 3
+Initial state:
+((3, 8, 5), (4, 7, 2), (6, 0, 1))
+
+Timer Started, Searching for solution
+Total nodes explored: 2569
+Number of moves to solve: 19
+Time to find solution: 0.01713395118713379s
+Initial state:
+((4, 8, 1), (0, 2, 5), (3, 6, 7))
+
+Timer Started, Searching for solution
+Total nodes explored: 1026
+Number of moves to solve: 17
+Time to find solution: 0.005856513977050781s
+Initial state:
+((3, 5, 4), (2, 7, 1), (6, 0, 8))
+
+Timer Started, Searching for solution
+Total nodes explored: 186
+Number of moves to solve: 13
+Time to find solution: 0.0010738372802734375s
+Initial state:
+((6, 2, 4), (0, 1, 3), (5, 7, 8))
+
+Timer Started, Searching for solution
+Total nodes explored: 6012
+Number of moves to solve: 21
+Time to find solution: 0.04843497276306152s
+Initial state:
+((3, 5, 4), (0, 7, 1), (2, 6, 8))
+
+Timer Started, Searching for solution
+Total nodes explored: 414
+Number of moves to solve: 15
+Time to find solution: 0.002325296401977539s
+n=3: Avg Steps = 17, Avg Nodes Expanded = 2041.4, Avg Time: 0.01
+Board Size: 4
+Initial state:
+((1, 6, 7, 3), (4, 2, 0, 11), (8, 12, 5, 10), (13, 14, 9, 15))
+
+Timer Started, Searching for solution
+Total nodes explored: 6940
+Number of moves to solve: 21
+Time to find solution: 0.06957602500915527s
+Initial state:
+((5, 4, 3, 7), (9, 10, 2, 1), (13, 0, 6, 11), (8, 12, 14, 15))
+
+Timer Started, Searching for solution
+Total nodes explored: 5656
+Number of moves to solve: 21
+Time to find solution: 0.05717658996582031s
+Initial state:
+((5, 4, 7, 1), (8, 6, 3, 10), (12, 13, 2, 0), (14, 9, 15, 11))
+
+Timer Started, Searching for solution
+Total nodes explored: 87593
+Number of moves to solve: 27
+Time to find solution: 1.1991817951202393s
+Initial state:
+((5, 9, 1, 7), (0, 4, 6, 2), (12, 10, 3, 11), (13, 8, 14, 15))
+
+Timer Started, Searching for solution
+Total nodes explored: 66779
+Number of moves to solve: 25
+Time to find solution: 0.9005677700042725s
+Initial state:
+((5, 0, 7, 2), (10, 4, 9, 3), (1, 8, 15, 6), (12, 13, 14, 11))
+
+Timer Started, Searching for solution
+Total nodes explored: 187117
+Number of moves to solve: 27
+Time to find solution: 3.0771217346191406s
+n=4: Avg Steps = 24.2, Avg Nodes Expanded = 70817, Avg Time: 1.06
+Running experiments for Heuristic 2
+Board Size: 2
+Initial state:
+((2, 0), (3, 1))
+
+Timer Started, Searching for solution
+Total nodes explored: 4
+Number of moves to solve: 3
+Time to find solution: 5.054473876953125e-05s
+Initial state:
+((2, 1), (0, 3))
+
+Timer Started, Searching for solution
+Total nodes explored: 2
+Number of moves to solve: 1
+Time to find solution: 2.6702880859375e-05s
+Initial state:
+((1, 0), (2, 3))
+
+Timer Started, Searching for solution
+Total nodes explored: 2
+Number of moves to solve: 1
+Time to find solution: 2.6464462280273438e-05s
+Initial state:
+((2, 1), (0, 3))
+
+Timer Started, Searching for solution
+Total nodes explored: 2
+Number of moves to solve: 1
+Time to find solution: 2.6464462280273438e-05s
+Initial state:
+((1, 0), (2, 3))
+
+Timer Started, Searching for solution
+Total nodes explored: 2
+Number of moves to solve: 1
+Time to find solution: 2.47955322265625e-05s
+n=2: Avg Steps = 1.4, Avg Nodes Expanded = 2.4, Avg Time: 0.0
+Board Size: 3
+Initial state:
+((1, 4, 2), (6, 3, 8), (5, 0, 7))
+
+Timer Started, Searching for solution
+Total nodes explored: 14
+Number of moves to solve: 9
+Time to find solution: 0.00014853477478027344s
+Initial state:
+((1, 4, 2), (0, 6, 5), (7, 3, 8))
+
+Timer Started, Searching for solution
+Total nodes explored: 10
+Number of moves to solve: 7
+Time to find solution: 0.00012135505676269531s
+Initial state:
+((1, 0, 7), (3, 5, 2), (4, 6, 8))
+
+Timer Started, Searching for solution
+Total nodes explored: 24
+Number of moves to solve: 11
+Time to find solution: 0.00022029876708984375s
+Initial state:
+((1, 4, 2), (7, 6, 8), (5, 0, 3))
+
+Timer Started, Searching for solution
+Total nodes explored: 33
+Number of moves to solve: 13
+Time to find solution: 0.0003008842468261719s
+Initial state:
+((5, 1, 8), (0, 6, 7), (3, 2, 4))
+
+Timer Started, Searching for solution
+Total nodes explored: 1483
+Number of moves to solve: 23
+Time to find solution: 0.01315760612487793s
+n=3: Avg Steps = 12.6, Avg Nodes Expanded = 312.8, Avg Time: 0.0
+Board Size: 4
+Initial state:
+((1, 0, 2, 3), (8, 5, 6, 11), (9, 4, 7, 10), (12, 13, 14, 15))
+
+Timer Started, Searching for solution
+Total nodes explored: 51
+Number of moves to solve: 13
+Time to find solution: 0.0006995201110839844s
+Initial state:
+((4, 1, 2, 3), (0, 14, 9, 7), (5, 8, 15, 13), (12, 6, 10, 11))
+
+Timer Started, Searching for solution
+Total nodes explored: 117
+Number of moves to solve: 21
+Time to find solution: 0.0019237995147705078s
+Initial state:
+((4, 1, 2, 3), (5, 9, 6, 7), (8, 13, 10, 15), (12, 11, 0, 14))
+
+Timer Started, Searching for solution
+Total nodes explored: 26
+Number of moves to solve: 11
+Time to find solution: 0.00036716461181640625s
+Initial state:
+((4, 1, 2, 3), (8, 12, 5, 7), (13, 6, 11, 0), (14, 10, 9, 15))
+
+Timer Started, Searching for solution
+Total nodes explored: 64
+Number of moves to solve: 17
+Time to find solution: 0.0008449554443359375s
+Initial state:
+((4, 0, 2, 3), (8, 1, 5, 6), (12, 10, 11, 7), (13, 9, 14, 15))
+
+Timer Started, Searching for solution
+Total nodes explored: 12
+Number of moves to solve: 11
+Time to find solution: 0.00017690658569335938s
+n=4: Avg Steps = 14.6, Avg Nodes Expanded = 54, Avg Time: 0.0
