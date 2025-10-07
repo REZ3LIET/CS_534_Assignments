@@ -4,7 +4,8 @@ import numpy as np
 import random
 import time
 import heapq
-
+import statistics
+import matplotlib.pyplot as plt
 
 class SlidingPuzzle:
     def __init__(self, size: int = 3):
@@ -130,7 +131,7 @@ class SlidingPuzzle:
                     num += 1
         return True
     
-    def shuffle(self, num_moves: int = 1000):
+    def shuffle(self, num_moves: int = 75):
         """Shuffle the puzzle by making random valid moves"""
         moves = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # right, left, down, up
         
@@ -227,7 +228,7 @@ class SlidingPuzzle:
     def shuffle_puzzle(self):
         """Shuffle puzzle and update display"""
         self.shuffle()
-        self.update_display()
+        # self.update_display()
     
     def reset_and_update(self):
         """Reset puzzle and update display"""
@@ -277,55 +278,9 @@ class SlidingAStar:
         self.counter = 0  # Tie-breaker for heapq
         self.visted_node_list = set()  # Stores all visited nodes
         self.heuristic = heuristic
-
-    def cost_function(self, g_cost):
-        return g_cost + 1
-
-    def get_move_weight(self, tile_curr, tile_g, blank):
-        # Manhatten to goal
-        d_tile = self.get_manhattan_dist(tile_curr, tile_g)
-
-        # Blocked moves = available moves - legal moves
-        b_m = 4
-        if tile_curr[0] == 0:  # 0th row so no down moves
-            b_m -= 1
-        if tile_curr[0] == self.size: # last row so no up moves
-            b_m -= 1
-        if tile_curr[1] == 0:  # 0th column so no left moves
-            b_m -= 1
-        if tile_curr[1] == self.size:  # last column so no roght moves
-            b_m -= 1
-
-        if self.get_manhattan_dist(tile_curr, blank) == 1:  # If there is legal move
-            b_m -= 1 
-
-        # Calculate number of obstacles (d_tile - 1 if blank_space)
-        # check for blank_space between tile_curr and tile_g
-        # d_tile = dist(tile_curr, blank) + dist(blank, tile_g) if on path
-        curr_to_blank_dist = self.get_manhattan_dist(tile_curr, blank)
-        blank_to_goal_dist = self.get_manhattan_dist(blank, tile_g)
-        if d_tile == (curr_to_blank_dist + blank_to_goal_dist):
-            n_obj = d_tile - 1
-        else:
-            n_obj = d_tile
-
-
-        # final h = dist(c, g) + b_m + n_obj + n_obj*4
-        final_h = d_tile + b_m + n_obj * 5
-        return final_h
-
-    def get_hamming_dist(self, curr):
-         # Flatten the arrays for easy comparison
-        current_flat = curr.flatten()
-        goal_flat = self.puzzle.get_goal_state().flatten()
-        
-        # Ignore the blank (0) when comparing
-        mismatch = (current_flat != goal_flat) & (goal_flat != 0)
-        
-        return np.sum(mismatch)
-
-    def get_manhattan_dist(self, s_point, g_point):
-        return abs(g_point[0] - s_point[0]) + abs(g_point[1] - s_point[1])
+        self.goal_state = ()
+        self.goal_pos_dict = {self.goal[x][y]: (x, y) for x in range(self.size) for y in range(self.size)}
+        self.open_set = {}
 
     def heuristic_function(self, c_state):
         """
@@ -339,20 +294,20 @@ class SlidingAStar:
             4. Return heuristic
         """
         if self.heuristic == 1:
-            return self.get_hamming_dist(c_state)
-        
-        goal_pos = self.puzzle.get_goal_state()
-        blank_r = np.where(c_state == 0)[0].item()
-        blank_c = np.where(c_state == 0)[1].item()
+            h_val = 0
+            for row in range(self.size):
+                for col in range(self.size):
+                    if c_state[row][col] != self.goal_state[row][col]:
+                        h_val += 1
+            return h_val
+
+        curr_pos_dict = {c_state[x][y]: (x, y) for x in range(self.size) for y in range(self.size)}
 
         h_val = 0
-        for i in range(0, self.size**2):
-            g_val = np.where(goal_pos == i)
-            c_val = np.where(c_state == i)
-            if self.heuristic == 2:
-                h_val += self.get_manhattan_dist(c_val, g_val)
-            else:
-                h_val += self.get_move_weight(c_val, g_val, (blank_r, blank_c))
+        for i in range(1, self.size**2):
+            g_val = self.goal_pos_dict[i]
+            c_val = curr_pos_dict[i]
+            h_val += abs(g_val[0] - c_val[0]) + abs(g_val[1] - c_val[1])  # Manhattan Distance
 
         return h_val
 
@@ -370,28 +325,15 @@ class SlidingAStar:
             move, leading to least cost node location of node with least cost
         """
         node = heapq.heappop(self.node_list)[-1]
-        self.visted_node_list.add(tuple(node.grid.flatten()))
+        self.open_set.pop(node.grid, None)
+        self.visted_node_list.add(node.grid)
 
         return node
-
-    def is_explored(self, grid):
-        """Checks if given node is explored or visited"""
-        state_key = tuple(grid.flatten())
-        if state_key in self.visted_node_list:
-            return True
-
-        for _, _, node in self.node_list:
-            if tuple(node.grid.flatten()) == state_key:
-                return True
-
-        return False
-
 
     def explore_moves(self, node: Node):
         """Explores nodes with cost around blank space"""
         c_state = node.grid
-        row, col = np.where(c_state == 0)
-        row, col = row.item(), col.item()
+        row, col = node.move
 
         directions = [(-1, 0), (0, 1), (1, 0), (0, -1)]  # Up, Right, Down, Left
 
@@ -400,22 +342,29 @@ class SlidingAStar:
             if not (0 <= nr < self.size) or not (0 <= nc < self.size):
                 continue
 
-            n_grid = c_state.copy()
+            n_grid = [list(row) for row in c_state]
             n_grid[row][col], n_grid[nr][nc] = n_grid[nr][nc], n_grid[row][col]
+            n_grid = tuple(tuple(row) for row in n_grid)
 
-            if self.is_explored(n_grid):
+            if n_grid in self.visted_node_list:
+                continue
+
+            new_hcost = self.heuristic_function(n_grid)
+            new_tcost = node.g_cost + 1 + new_hcost
+            if n_grid in self.open_set and self.open_set[n_grid] < new_tcost:
                 continue
 
             new_node = Node(
                 n_grid,
                 node,
                 node.g_cost + 1,
-                self.heuristic_function(n_grid),
+                new_hcost,
                 (nr, nc)
             )
 
             self.counter += 1
             heapq.heappush(self.node_list, (new_node.total_cost, self.counter, new_node))
+            self.open_set[new_node.grid] = new_node.total_cost
 
     def solve(self, state=None, blank_space=None):
         """
@@ -431,34 +380,38 @@ class SlidingAStar:
         """
         if state is None:
             self.puzzle.run()
-            start_state = self.puzzle.get_state()
 
         else:
-            start_state = self.puzzle.set_state(state, blank_space)
+            self.puzzle.set_state(state.copy(), blank_space)
 
-        goal_state = self.puzzle.get_goal_state()
+        start_state = tuple(tuple(int(x) for x in row) for row in self.puzzle.get_state())
+        self.goal_state = tuple(tuple(int(x) for x in row) for row in self.puzzle.get_goal_state())
 
         print("Initial state:")
         print(start_state)
         print()
 
         # Start timer
-        input("Press enter to continue: ")
         s_time = time.time()
-        c_node = Node(start_state, -1, 0, self.heuristic_function(start_state), (-1, -1))
+        blank_pos = next((x, y) for x in range(self.size) for y in range(self.size) if start_state[x][y] == 0)
+        c_node = Node(start_state, -1, 0, self.heuristic_function(start_state), blank_pos)
+        heapq.heappush(self.node_list, (c_node.total_cost, self.counter, c_node))
         print("Timer Started, Searching for solution")
         while True:
-            self.explore_moves(c_node)  # Explores possible nodes w.r.t possible moves
-            self.visted_node_list.add(tuple(c_node.grid.flatten()))  # Add expanded node to list
+            if len(self.node_list) == 0:
+                stats = {
+                    "nodes_expanded": len(self.visted_node_list),
+                    "path_length": -1,
+                    "time_taken": time.time() - s_time
+                }
+                print("No path found")
+                return False, stats
             best_node = self.get_best_node()
-            # print(f"node gcost, total cost: {best_node.g_cost, best_node.total_cost}")
-
-            if np.array_equal(best_node.grid, goal_state):
+            if best_node.grid == self.goal_state:
                 break
 
-            c_node = best_node
+            self.explore_moves(best_node)  # Explores possible nodes w.r.t possible moves
 
-        print(f"Goal g_cost, total_cost: {best_node.g_cost, best_node.total_cost}")
         move_list = []
         curr_node = best_node
         while True:
@@ -467,29 +420,105 @@ class SlidingAStar:
             move_list.append(curr_node.move)
             curr_node = curr_node.parent
 
-        num_nodes = len(self.visted_node_list)
-        num_moves = len(move_list)
-        print(f"Total nodes explored: {num_nodes}")
-        print(f"Number of moves to solve: {num_moves}")
-        print(f"Time to find solution: {time.time() - s_time}s")
-        for move in move_list[::-1]:
-            self.puzzle.root.update_idletasks()
-            self.puzzle.move_tile(move[0], move[1])
-            self.puzzle.update_display()
-            time.sleep(1)
-        input("Press enter to exit")
+        stats = {
+            "nodes_expanded": len(self.visted_node_list),
+            "path_length": len(move_list),
+            "time_taken": time.time() - s_time
+        }
+        print(f"Total nodes explored: {stats['nodes_expanded']}")
+        print(f"Number of moves to solve: {stats['path_length']}")
+        print(f"Time to find solution: {stats['time_taken']}s")
 
-        blank_r, blank_c = np.where(start_state == 0)
-        return (start_state, (blank_r.item(), blank_c.item()))
+        # for move in move_list[::-1]:
+        #     self.puzzle.root.update_idletasks()
+        #     self.puzzle.move_tile(move[0], move[1])
+        #     self.puzzle.update_display()
+            # time.sleep(1)
+        # input("Press enter to exit")
 
+        return True, stats
+
+def run_batch_experiments(show_plot=True):
+    """
+    Run SlidingAStar solver for heuristics 1 and 2 over puzzle sizes 3 to 7,
+    each 5 runs per size, collect stats, and plot results.
+    """
+    heuristic_map = {
+        1: "Misplaced Tiles (Hamming Distance)",
+        2: "Manhattan Distance"
+    }
+    results = {
+        1: [],  # heuristic 1 results: list of tuples (n, avg_steps, avg_nodes, avg_time)
+        2: []   # heuristic 2 results
+    }
+
+    for heuristic in [1, 2]:
+        print(f"Running experiments for Heuristic {heuristic}")
+        for n in range(3, 6):
+            s_time = time.time()
+            print(f"Board Size: {n}")
+            steps_list = []
+            nodes_expanded = []
+            time_list = []
+
+            for _ in range(5):
+                solver = SlidingAStar(n, heuristic)
+                _, stats = solver.solve()
+                steps_list.append(stats["path_length"])
+                nodes_expanded.append(stats["nodes_expanded"])
+                time_list.append(stats["time_taken"])
+
+            avg_steps = round(statistics.mean(steps_list), 2)
+            avg_nodes = round(statistics.mean(nodes_expanded), 2)
+            avg_time = round(statistics.mean(time_list), 2)
+            results[heuristic].append((n, avg_steps, avg_nodes, avg_time))
+            print(f"n={n}: Avg Steps = {avg_steps}, Avg Nodes Expanded = {avg_nodes}, Avg Time: {avg_time}")
+
+            if time.time() - s_time > 600:
+                print("Took longer than 10 mins, stopping...")
+                break
+
+    if show_plot:
+        # Plot 1: Board size vs Avg nodes expanded (for both heuristics)
+        plt.figure(figsize=(12, 5))
+        plt.subplot(1, 2, 1)
+        for h in [1, 2]:
+            ns = [r[0] for r in results[h]]
+            avg_nodes = [r[2] for r in results[h]]
+            plt.plot(ns, avg_nodes, marker='o', label=f"Heuristic {heuristic_map[h]}")
+        plt.xlabel("Board Size (n)")
+        plt.ylabel("Average Nodes Expanded")
+        plt.title("Puzzle Size vs Average Nodes Expanded")
+        plt.grid(True)
+        plt.legend()
+
+        # Plot 2: Effective branching factor vs total nodes expanded
+        plt.subplot(1, 2, 2)
+        for h in [1, 2]:
+            avg_steps = [r[1] for r in results[h]]
+            avg_nodes = [r[2] for r in results[h]]
+
+            effective_branching = []
+            for N, d in zip(avg_nodes, avg_steps):
+                if d > 0:
+                    b_star = (N / d) ** (1 / d)
+                else:
+                    b_star = 0
+                effective_branching.append(b_star)
+
+            plt.plot(effective_branching, avg_nodes, marker='o', label=f"Heuristic {heuristic_map[h]}")
+
+        plt.xlabel("Effective Branching Factor")
+        plt.ylabel("Average Nodes Expanded")
+        plt.title("Effective Branching Factor vs Nodes Expanded")
+        plt.grid(True)
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+    return results
 
 # Example usage and demonstration
 if __name__ == "__main__":
-    solver_c = SlidingAStar(4, 3)
-    grid, blank = solver_c.solve()
-
-    solver_m = SlidingAStar(4, 2)
-    _, _ = solver_m.solve(grid, blank)
-
-    solver_h = SlidingAStar(4, 1)
-    _, _ = solver_h.solve(grid, blank)
+    stats = run_batch_experiments(True)
