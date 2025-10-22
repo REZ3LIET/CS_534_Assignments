@@ -31,7 +31,7 @@ class MBSAS:
         return tuple(data)
     
     def get_sq_euclidean(self, ele_a: tuple, ele_b: tuple) -> float:
-        """Calculates the euclidean distance of given elements"""
+        """Calculates the squared euclidean distance of given elements"""
         x_ = (ele_a[0] - ele_b[0]) ** 2
         y_ = (ele_a[1] - ele_b[1]) ** 2
         return (x_ + y_)
@@ -65,6 +65,7 @@ class MBSAS:
         return cluster_name
 
     def compute_mean(self, cluster_name: str) -> tuple:
+        """Calculates the mean of a given clustered"""
         data_pts = self.clusters[cluster_name][0]
         n = len(data_pts)
 
@@ -81,7 +82,8 @@ class MBSAS:
 
         return (sum_x/n, sum_y/n)
 
-    def has_converged(self, old, new, eps=1e-6):
+    def has_converged(self, old, new, eps=1e-4):
+        """Returns if the cluster's old and new centroids are within threshold"""
         return sum((a - b) ** 2 for a, b in zip(old, new)) < eps
 
     def run(self, data: tuple, m: int) -> dict:
@@ -127,7 +129,7 @@ class MBSAS:
                     continue
                 self.clusters[j][-1] = new_centroid
 
-            # Convergen Criteria
+            # Convergence Criteria
             if converged_clusters == len(self.clusters):
                 if_converged = True
                 itr = cnt
