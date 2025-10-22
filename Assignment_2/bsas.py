@@ -1,3 +1,10 @@
+"""
+CS 534 Assignment-2: BSAS Algorithm.
+
+Author: Samar Kale
+Date: 2025-10-21
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 
