@@ -141,7 +141,7 @@ class MBSAS:
             plt.scatter(xs, ys, label=label)  # Plot with label
 
 
-        plt.title("BSAS Cluster")
+        plt.title("MBSAS Cluster")
         plt.xlabel("X")
         plt.ylabel("Y")
         plt.legend()
