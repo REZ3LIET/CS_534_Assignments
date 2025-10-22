@@ -71,7 +71,7 @@ class MBSAS:
         Args:
             data: input data to be analysed
             q: maximum number of clusters
-            theta: threshold distance eyond which new cluster is generated
+            theta: threshold distance beyond which new cluster is generated
         """
         m = 1  # Initial cluster
 
@@ -148,9 +148,49 @@ class MBSAS:
         plt.grid(True)
         plt.show()
 
-if __name__ == "__main__":
+def estimate_clusters_with_mbsas(data_path, theta_range: int, q_max=1000, plot=True) -> None:
+    """
+    Estimate number of clusters m using MBSAS over a range of theta values.
+
+    Args:
+        data: data which is to be analysed
+        theta_range: max number of theta value
+        q_max: max number of clusters
+
+    Returns:
+        (theta_list, m_theta_list)
+    """
+    theta_list = np.arange(0.1, theta_range, 0.1).tolist()
+    m_theta_list = []
+
     clusterer = MBSAS()
-    data_path = "/workspaces/CS_534/CS_534_Assignments/Assignment_2/Data/cluster_data.txt"
     data = clusterer.load_data(data_path=data_path)
-    clusters = clusterer.run(data, 20, 1.5)
-    clusterer.plot_clusters(clusters)
+
+    for i, theta in enumerate(theta_list):
+        mid_cluster = []
+        for _ in range(5):
+            clusters = clusterer.run(data, q_max, theta)
+            mid_cluster.append(len(clusters))
+
+        avg_clusters = sum(mid_cluster)/len(mid_cluster)
+        m_theta_list.append(avg_clusters)
+        if avg_clusters == 1:
+            print("Average clusters is now 1")
+            break
+
+    m_theta_vals = len(m_theta_list)
+    if plot:
+        plt.figure(figsize=(8, 5))
+        plt.plot(theta_list[:m_theta_vals], m_theta_list, marker='o', color="red")
+        plt.xlabel('MBSAS threshold (Theta)')
+        plt.ylabel('Number of clusters (m_theta)')
+        plt.title('MBSAS Cluster Estimation')
+        plt.grid(True)
+        plt.show()
+
+    print(f"Theta Values: {theta_list}")
+    print(f"Cluster Values: {m_theta_list}")
+
+if __name__ == "__main__":
+    data_path = "/workspaces/CS_534/CS_534_Assignments/Assignment_2/Data/cluster_data.txt"
+    estimate_clusters_with_mbsas(data_path, 10)
